@@ -8,63 +8,47 @@ using NUnit.Framework;
 
 namespace LogAn.UnitTests
 {
+    public class FakeExtensionManager : IExtensionManager
+    {
+        public bool WillBeValid = false;
+
+        public bool IsValid(string filename)
+        {
+            return WillBeValid;
+        }
+    }
+
+    class TestableLogAnalyzer : LogAnalyzer
+    {
+        public IExtensionManager Manager;
+
+        public TestableLogAnalyzer(IExtensionManager mgr)
+        {
+            Manager = mgr;
+        }
+
+        protected override IExtensionManager GetManager()
+        {
+            return Manager;
+        }
+    }
+
     [TestFixture]
     public class LogAnalyzerTests
     {
-        private LogAnalyzer MakeAnalyzer()
-        {
-            return new LogAnalyzer();
-        }
-
         [Test]
-        public void IsValidLogFileName_BadExtension_ReturnsFalse()
+        public void OverrideTest()
         {
-            LogAnalyzer analyzer = MakeAnalyzer();
+            FakeExtensionManager stub = new FakeExtensionManager()
+            {
+                WillBeValid = true
+            };
 
-            bool result = analyzer.IsValidLogFileName("filewithbadextension.foo");
+            TestableLogAnalyzer logan = new TestableLogAnalyzer(stub);
 
-            Assert.False(result);
-        }
-
-        [Test]
-        public void IsValidLogFileName_GoodExtensionLowercase_ReturnsTrue()
-        {
-            LogAnalyzer analyzer = MakeAnalyzer();
-
-            bool result = analyzer.IsValidLogFileName("filewithgoodextension.slf");
+            bool result = logan.IsValidLogFileName("file.ext");
 
             Assert.True(result);
-        }
-
-        [Test]
-        public void IsValidLogFileName_GoodExtensionUppercase_ReturnsTrue()
-        {
-            LogAnalyzer analyzer = MakeAnalyzer();
-
-            bool result = analyzer.IsValidLogFileName("filewithgoodextension.SLF");
-
-            Assert.True(result);
-        }
-
-        [Test]
-        public void IsValidLogFileName_EmptyFileName_Throws()
-        {
-            LogAnalyzer analyzer = MakeAnalyzer();
-
-            var ex = Assert.Catch<Exception>(() => analyzer.IsValidLogFileName(""));
-
-            StringAssert.Contains("filename has to be provided", ex.Message);
-        }
-
-        [TestCase("badfilename.foo", false)]
-        [TestCase("goodfilename.slf", true)]
-        public void IsValidLogFileName_WhenCalled_ChangesWasLastFileNameValid(string file, bool expected)
-        {
-            LogAnalyzer analyzer = MakeAnalyzer();
-
-            analyzer.IsValidLogFileName(file);
-
-            Assert.AreEqual(expected, analyzer.WasLastFileNameValid);
         }
     }
 }
