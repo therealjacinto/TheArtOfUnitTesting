@@ -8,14 +8,29 @@ namespace LogAn
 {
     public class LogAnalyzer
     {
-        protected virtual IExtensionManager GetManager()
+        public IWebService Service { get; set; }
+        public IEmailService Email { get; set; }
+
+
+        public LogAnalyzer(IWebService service, IEmailService email)
         {
-            return new FileExtensionManager();
+            Service = service;
+            Email = email;
         }
 
-        public bool IsValidLogFileName(string fileName)
+        public void Analyze(string fileName)
         {
-            return GetManager().IsValid(fileName);
+            if (fileName.Length < 8)
+            {
+                try
+                {
+                    Service.LogError("Filename too short:" + fileName);
+                }
+                catch (Exception e)
+                {
+                    Email.SendEmail("someone@somewhere.com", "can't log", e.Message);
+                }
+            }
         }
     }
 }

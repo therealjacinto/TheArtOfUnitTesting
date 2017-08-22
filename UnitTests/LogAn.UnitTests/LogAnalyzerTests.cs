@@ -8,28 +8,30 @@ using NUnit.Framework;
 
 namespace LogAn.UnitTests
 {
-    public class FakeExtensionManager : IExtensionManager
+    public class FakeWebService : IWebService
     {
-        public bool WillBeValid = false;
+        public Exception ToThrow;
 
-        public bool IsValid(string filename)
+        public void LogError(string message)
         {
-            return WillBeValid;
+            if (ToThrow != null)
+            {
+                throw ToThrow;
+            }
         }
     }
 
-    class TestableLogAnalyzer : LogAnalyzer
+    public class FakeEmailService : IEmailService
     {
-        public IExtensionManager Manager;
+        public string To;
+        public string Subject;
+        public string Body;
 
-        public TestableLogAnalyzer(IExtensionManager mgr)
+        public void SendEmail(string to, string subject, string body)
         {
-            Manager = mgr;
-        }
-
-        protected override IExtensionManager GetManager()
-        {
-            return Manager;
+            To = to;
+            Subject = subject;
+            Body = body;
         }
     }
 
@@ -37,18 +39,21 @@ namespace LogAn.UnitTests
     public class LogAnalyzerTests
     {
         [Test]
-        public void OverrideTest()
+        public void Analyze_WebServiceThrows_SendsEmail()
         {
-            FakeExtensionManager stub = new FakeExtensionManager()
-            {
-                WillBeValid = true
-            };
+            FakeWebService stubService = new FakeWebService();
+            stubService.ToThrow = new Exception("fake exception");
 
-            TestableLogAnalyzer logan = new TestableLogAnalyzer(stub);
+            FakeEmailService mockEmail = new FakeEmailService();
 
-            bool result = logan.IsValidLogFileName("file.ext");
+            LogAnalyzer log = new LogAnalyzer(stubService, mockEmail);
 
-            Assert.True(result);
+            string tooShortFileName = "abc.ext";
+            log.Analyze(tooShortFileName);
+
+            StringAssert.Contains("someone@somewhere.com", mockEmail.To);
+            StringAssert.Contains("fake exception", mockEmail.Body);
+            StringAssert.Contains("can't log", mockEmail.Subject);
         }
     }
 }

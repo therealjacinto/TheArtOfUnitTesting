@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace LogAn
 {
-    public interface IExtensionManager
+    public interface IWebService
     {
-        bool IsValid(string filename);
+        void LogError(string message);
     }
 }
